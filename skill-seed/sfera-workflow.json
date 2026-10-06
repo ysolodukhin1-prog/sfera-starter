@@ -1,0 +1,25 @@
+{
+  "key": "sfera-workflow",
+  "title": "Цикл работы Сферы",
+  "scope": "instance",
+  "tags": [
+    "sfera"
+  ],
+  "steps": [
+    "Прочитать get_context",
+    "Создать start_task",
+    "Использовать канонические источники",
+    "Завершить finish_task"
+  ],
+  "prerequisites": [
+    "Авторизованный доступ к этому экземпляру"
+  ],
+  "tools": [
+    "get_context",
+    "start_task",
+    "finish_task"
+  ],
+  "limitations": [
+    "Бизнес-источники подключаются отдельно. Статус кандидата не доказывает успешное применение."
+  ]
+}
