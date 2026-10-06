@@ -1,0 +1,154 @@
+x-app: &app
+ build: .
+ image: sfera-instance:${SFERA_CLIENT_KEY}
+ restart: unless-stopped
+ read_only: true
+ tmpfs: [/tmp]
+ cap_drop: [ALL]
+ security_opt: [no-new-privileges:true]
+ pids_limit: 128
+ networks: [private]
+ volumes:
+  - knowledge:/knowledge
+  - skill-artifacts:/skill-artifacts
+x-common: &common
+ CLIENT_PROJECT_ID: ${CLIENT_PROJECT_ID}
+ CLIENT_ACCOUNT_ID: ${CLIENT_ACCOUNT_ID}
+ SFERA_CLIENT_KEY: ${SFERA_CLIENT_KEY}
+ SFERA_ORIGIN: ${SFERA_ORIGIN}
+ CLIENT_MCP_RESOURCE_URL: ${SFERA_ORIGIN}/galactica-mcp/mcp
+ GALACTICA_KNOWLEDGE_ROOT: /knowledge
+ AUTONOMY_SKILLS_ROOT: /skill-artifacts
+ AUTONOMY_SKILL_MIN_SUCCESSES: '2'
+ QDRANT_URL: http://qdrant:6333
+ QDRANT_COLLECTION: ${QDRANT_COLLECTION}
+ QDRANT_VECTOR_SIZE: ${QDRANT_VECTOR_SIZE}
+ NEO4J_URI: bolt://neo4j:7687
+ NEO4J_USER: neo4j
+ NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+ LLM_BASE_URL: ${LLM_BASE_URL}
+ EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+ PROTOCOL_MODEL: ${PROTOCOL_MODEL}
+services:
+ postgres:
+  image: postgres:16.14-alpine3.23
+  environment:
+   POSTGRES_USER: sfera_bootstrap
+   POSTGRES_DB: sfera
+   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  volumes: [postgres:/var/lib/postgresql/data]
+  networks: [private]
+  restart: unless-stopped
+  healthcheck:
+   test: [CMD-SHELL, 'pg_isready -U sfera_bootstrap -d sfera']
+   interval: 5s
+   timeout: 3s
+   retries: 30
+ qdrant:
+  image: qdrant/qdrant:v1.18.1
+  volumes: [qdrant:/qdrant/storage]
+  networks: [private]
+  restart: unless-stopped
+ neo4j:
+  image: neo4j:2026.06.0
+  environment:
+   NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+   NEO4J_server_memory_heap_initial__size: 256m
+   NEO4J_server_memory_heap_max__size: 512m
+   NEO4J_server_memory_pagecache_size: 256m
+  volumes: [neo4j:/data]
+  networks: [private]
+  restart: unless-stopped
+ bootstrap:
+  <<: *app
+  profiles: [setup]
+  restart: 'no'
+  command: [python,bootstrap.py,init]
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://sfera_bootstrap:${POSTGRES_PASSWORD}@postgres:5432/sfera
+  volumes:
+   - knowledge:/knowledge
+   - skill-artifacts:/skill-artifacts
+   - ./instance/config.json:/instance/config.json:ro
+   - ./instance/bootstrap.json:/instance/bootstrap.json:ro
+  depends_on:
+   postgres: {condition: service_healthy}
+ mcp:
+  <<: *app
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://galactica_client_mcp:${GALACTICA_CLIENT_MCP_PASSWORD}@postgres:5432/sfera
+   AUTH_DATABASE_URL: postgresql://sfera_auth:${SFERA_AUTH_PASSWORD}@postgres:5432/sfera
+  depends_on:
+   postgres: {condition: service_healthy}
+ ui:
+  <<: *app
+  command: [python,/app/ui/daughter_api.py]
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://galactica_ui_acl:${GALACTICA_UI_ACL_PASSWORD}@postgres:5432/sfera
+   AUTH_DATABASE_URL: postgresql://sfera_auth:${SFERA_AUTH_PASSWORD}@postgres:5432/sfera
+  depends_on:
+   postgres: {condition: service_healthy}
+ caddy:
+  image: caddy:2.11.4-alpine
+  environment:
+   SFERA_DOMAIN: ${SFERA_DOMAIN}
+  ports:
+   - '${HTTP_PORT}:80'
+   - '${HTTPS_PORT}:443'
+  volumes:
+   - ./Caddyfile:/etc/caddy/Caddyfile:ro
+   - ./instance/runtime/ui:/srv:ro
+   - caddy-data:/data
+   - caddy-config:/config
+  networks: [private,ingress]
+  restart: unless-stopped
+  depends_on: [mcp,ui]
+ ollama:
+  image: ollama/ollama:0.13.5
+  profiles: [ai]
+  volumes: [models:/root/.ollama]
+  networks: [private,model-egress]
+  restart: unless-stopped
+ projector:
+  <<: *app
+  profiles: [ai]
+  command: [python,-u,autonomy_projection.py]
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://galactica_autonomy:${GALACTICA_AUTONOMY_PASSWORD}@postgres:5432/sfera
+  depends_on: [postgres,qdrant,neo4j,ollama]
+  networks: [private,model-egress]
+ protocol:
+  <<: *app
+  profiles: [ai]
+  command: [python,-u,autonomy_protocol.py]
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://galactica_autonomy:${GALACTICA_AUTONOMY_PASSWORD}@postgres:5432/sfera
+  depends_on: [postgres,ollama]
+  networks: [private,model-egress]
+ links:
+  <<: *app
+  profiles: [ai]
+  command: [python,-u,autonomy_links.py]
+  environment:
+   <<: *common
+   DATABASE_URL: postgresql://galactica_autonomy:${GALACTICA_AUTONOMY_PASSWORD}@postgres:5432/sfera
+  depends_on: [postgres,ollama]
+  networks: [private,model-egress]
+networks:
+ private: {internal: true}
+ ingress: {}
+ model-egress: {}
+volumes:
+ postgres: {}
+ qdrant: {}
+ neo4j: {}
+ knowledge: {}
+ skill-artifacts: {}
+ caddy-data: {}
+ caddy-config: {}
+ models: {}

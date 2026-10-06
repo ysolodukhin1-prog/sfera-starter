@@ -1,0 +1,15 @@
+.env
+instance/
+__pycache__/
+*.pyc
+upstream/
+schema/current.sql
+SOURCE_PROVENANCE.json
+base/
+tools/generalize.py
+templates/client_mcp_server.py
+templates/client_mcp_trend.py
+templates/trend_data_access.py
+.secrets/
+*.dump
+*.log

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sfera": {
+      "type": "http",
+      "url": "https://sfera.your-client.example/galactica-mcp/mcp"
+    }
+  }
+}

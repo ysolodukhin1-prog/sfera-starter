@@ -1,0 +1,11 @@
+.git
+.env
+upstream
+schema/current.sql
+instance/bootstrap.json
+instance/config.json
+__pycache__
+**/__pycache__
+*.dump
+*.log
+SOURCE_PROVENANCE.json

@@ -1,0 +1,31 @@
+{$SFERA_DOMAIN} {
+ encode gzip
+ header {
+  X-Content-Type-Options nosniff
+  Referrer-Policy no-referrer
+  Strict-Transport-Security "max-age=31536000"
+ }
+ handle /.well-known/* {
+  reverse_proxy mcp:8080
+ }
+ handle /login* {
+  reverse_proxy mcp:8080
+ }
+ handle /logout {
+  reverse_proxy mcp:8080
+ }
+ handle_path /galactica-mcp/* {
+  reverse_proxy mcp:8080
+ }
+ handle_path /galactica-api/* {
+  reverse_proxy ui:8080
+ }
+ handle /galactica/* {
+  root * /srv
+  uri strip_prefix /galactica
+  file_server
+ }
+ handle / {
+  redir /galactica/
+ }
+}

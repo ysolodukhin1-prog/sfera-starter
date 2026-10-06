@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-05",
+  "environment": "Notebook native PostgreSQL 16.14 + Python 3.12 TestClient",
+  "checks": [
+    "Anonymous MCP denied",
+    "Login rejects open redirect",
+    "Login CSRF denied",
+    "Wrong PKCE rejected",
+    "Authorization code cannot be replayed",
+    "Independent owner identity",
+    "Neutral context available",
+    "Packaged skills available",
+    "Wrong PKCE rejected",
+    "Authorization code cannot be replayed",
+    "Reader receives no write/task scopes",
+    "Reader cannot create tasks",
+    "Owner task creation",
+    "Owner reads the actual created task",
+    "Private task cannot be read by another user",
+    "Canonical document returned",
+    "Journaled Markdown update",
+    "Stale SHA update refused",
+    "Structured task finish persisted",
+    "Independent UI graph reads canonical state",
+    "UI context documents available",
+    "Reader UI excludes another user private task",
+    "Admin ACL accepts independent UUID user",
+    "Stale ACL revision refused",
+    "Material ACL denial enforced for reader",
+    "Disabled user bearer denied",
+    "Refresh rotation works",
+    "Refresh replay denied",
+    "Refresh replay revokes family",
+    "Anonymous OAuth and passwords unreadable by app role"
+  ],
+  "passed": 30,
+  "limitations": [
+    "Docker/Linux clean-server end-to-end rehearsal pending",
+    "Windows file-lock shim; concurrency semantics not verified"
+  ]
+}
